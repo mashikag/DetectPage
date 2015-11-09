@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 2.8)
+project( DetectPages )
+find_package( OpenCV REQUIRED )
+add_executable( DetectPages main.cpp )
+target_link_libraries( DetectPages ${OpenCV_LIBS} )
