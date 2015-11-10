@@ -6,7 +6,10 @@
 
 using namespace cv;
 using namespace std;
+
 const float mChannelRange[2] = {0.0, 255.0};
+RNG rng(12345);
+
 Mat BackProject(Mat image, MatND hist) {
   Mat result = image.clone();
   const float* channel_ranges[] = {mChannelRange, mChannelRange, mChannelRange};
@@ -70,14 +73,44 @@ int main(int argc, char** argv )
   imshow("after backprojection", backprojected_src);
 
   Mat bin_src;
-  threshold( backprojected_src, bin_src, 123, 255, THRESH_BINARY);  
+  threshold( backprojected_src, bin_src, 20, 255, THRESH_BINARY);  
   
   //Closing (dilation -> erosion) in order to get rid of small objects that may still remain in the background
   Mat closed_src;
   Mat element = getStructuringElement( MORPH_RECT, Size( 5, 5));
-  morphologyEx(backprojected_src, closed_src, MORPH_CLOSE, element, Point(-1,-1), 1);
+  morphologyEx(bin_src, closed_src, MORPH_CLOSE, element, Point(-1,-1), 1);
   imshow("after closing", closed_src);  
   
+  //find contours
+  /*vector<vector<Point> > contours;
+  vector<Vec4i> hierarchy;
+  findContours(closed_src, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
+  */
+  vector<Point> points;
+  Mat_<uchar>::iterator it = closed_src.begin<uchar>();
+  Mat_<uchar>::iterator end = closed_src.end<uchar>();
+  for(; it != end; ++it){
+    if(*it)
+      points.push_back(it.pos());
+  }
+
+  //find rotated rectangles
+  /*vector<RotatedRect> minRect(contours.size());
+  for(int i = 0; i < contours.size(); i++) {
+    minRect[i] = minAreaRect(Mat(contours[i]));
+  }*/
+  RotatedRect box = minAreaRect(Mat(points));
+
+  //Draw rotated rects
+  Mat drawing = Mat::zeros( closed_src.size(), CV_8UC3);
+  Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
+  Point2f rect_points[4];
+  box.points(rect_points);
+  for (int j = 0; j < 4; j++)
+    line(drawing, rect_points[j], rect_points[(j+1)%4], color, 1, 8);
+
+  imshow("Rects", drawing);
+
   waitKey(0);
 
   return 0;
