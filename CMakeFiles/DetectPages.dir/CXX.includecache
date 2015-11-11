@@ -13,6 +13,8 @@ string
 -
 math.h
 -
+sstream
+-
 opencv2/opencv.hpp
 -
 opencv2/imgproc/imgproc.hpp

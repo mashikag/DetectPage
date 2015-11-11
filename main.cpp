@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string>
 #include <math.h>
+#include <sstream>
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -112,13 +113,25 @@ int main(int argc, char** argv )
   //Load template images  
   int nTemplates =13;
   string templateFiles[nTemplates];
-  for (int i = 0; i < nTemplates; i++) {
-    templateFiles[i] = "Page" + (i<9? ('0'+i):i) ;
-    templateFiles[i] += ".jpg";
+  for (int i = 1; i <= nTemplates; i++) {
+    ostringstream convert_i;
+    convert_i << i;
+    if (i < 10) {
+      templateFiles[i-1] = "Page0" + convert_i.str();
+    }
+    else {
+      templateFiles[i-1] = "Page" + convert_i.str();
+    }
+    templateFiles[i-1] += ".jpg";
   }
   Mat templateImages[13];
   for (int i = 0; i < nTemplates; i++) {
+    cout << templateFiles[i]<<'\n';
     templateImages[i] = imread(imgsDir + templateFiles[i]);
+    if (!templateImages[i].data){
+      cout << "The file " << imgsDir + templateFiles[i] << " does not exist.\n";
+      return -1;
+    }
   }
 
   
