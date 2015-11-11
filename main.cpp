@@ -56,7 +56,7 @@ quadrangle getQuadrangle(Mat src){
   return q;
 }
 
-//Takes in a binary image with the blue frame of the page thresholded 
+//Takes in a binary image with the backprojected blue
 Mat getPageMask(Mat in) {
   Mat out = Mat::zeros(in.rows, in.cols, CV_8UC1);
   Scalar color = Scalar( 255, 255, 255);
@@ -123,7 +123,12 @@ int main(int argc, char** argv )
   imshow("after closing", closed_src);  
   
   //Draw the page mask
-  imshow("Page mask", getPageMask(closed_src));
+  Mat page_mask = getPageMask(closed_src);
+  imshow("Page mask", page_mask);
+  
+  Mat extracted_page;
+  bitwise_and(src, src, extracted_page, page_mask);
+  imshow("extracted", extracted_page);
 
   waitKey(0);
 
