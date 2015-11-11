@@ -98,11 +98,20 @@ Mat performPerspectiveGeometricTransform(Mat in, quadrangle q){
   return out;
 }
 
-Mat* scaleTemplates(Mat* templates, Mat* scaledTemplates, int nTemplates, Size dstSize){
+void scaleTemplates(Mat* templates, Mat* scaledTemplates, int nTemplates, Size dstSize){
   for (int i = 0; i < nTemplates; i++) {
     resize(templates[i], scaledTemplates[i], dstSize);
   }
-  return scaledTemplates;  
+}
+
+void matchAgainstTemplates(Mat in, Mat* templates, int nTemplates){
+  for (int i = 0; i < nTemplates; i++) {
+    Mat res;
+    matchTemplate(in, templates[i], res, CV_TM_SQDIFF);
+    normalize( res, res, 0, 1, NORM_MINMAX, -1, Mat() );
+    namedWindow( "template"+i, WINDOW_AUTOSIZE );
+    imshow("template"+i, res);
+  }
 }
 
 int main(int argc, char** argv )
@@ -188,9 +197,12 @@ int main(int argc, char** argv )
   imshow("trans", transformed_page);
 
   //scale all templates and blur both the templates as well as the transformed page and check against templates
-  
+  Mat scaledTemplates[nTemplates];
+  scaleTemplates(templateImages, scaledTemplates, nTemplates, transformed_page.size());
 
-
+  imshow("scaled", scaledTemplates[12]);
+   
+  matchAgainstTemplates(transformed_page, scaledTemplates, nTemplates);
   waitKey(0);
 
   return 0;
