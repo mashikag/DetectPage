@@ -17,6 +17,7 @@ struct quadrangle{
   Point max_x_pt;
 };
 
+//Takes in an image with white blobs and creates a min area bounding quadrangle
 quadrangle getQuadrangle(Mat src){
   quadrangle q;
   vector<Point> points;
@@ -55,17 +56,21 @@ quadrangle getQuadrangle(Mat src){
   return q;
 }
 
-Mat BackProject(Mat image, MatND hist) {
-  Mat result = image.clone();
-  const float* channel_ranges[] = {mChannelRange, mChannelRange, mChannelRange};
-
-  int* mChannelNumbers = new int[3];
-  for (int count=0; count<3; count++) {
-    mChannelNumbers[count] = count;
-  }
-
-  calcBackProject(&image, 1, mChannelNumbers, hist, result, channel_ranges, 255.0);
-  return result;
+//Takes in a binary image with the blue frame of the page thresholded 
+Mat getPageMask(Mat in) {
+  Mat out = Mat::zeros(in.rows, in.cols, CV_8UC1);
+  Scalar color = Scalar( 255, 255, 255);
+  quadrangle q = getQuadrangle(in);
+  Point pts [1][4];
+  pts[0][0] = q.min_y_pt;
+  pts[0][1] = q.min_x_pt;
+  pts[0][2] = q.max_y_pt;
+  pts[0][3] = q.max_x_pt;
+  const Point* ppt[1] = {pts[0]};
+  int npts[] = {4};
+  
+  fillPoly(out, ppt, npts, 1, color); 
+  return out;
 }
 
 int main(int argc, char** argv )
@@ -117,14 +122,8 @@ int main(int argc, char** argv )
   morphologyEx(bin_src, closed_src, MORPH_CLOSE, element, Point(-1,-1), 1);
   imshow("after closing", closed_src);  
   
-  //Draw the quadrangle
-  Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
-  quadrangle q = getQuadrangle(bin_src);
-  line(bin_src, q.max_y_pt, q.min_x_pt, color, 1, 8);
-  line(bin_src, q.max_y_pt, q.max_x_pt, color, 1, 8);
-  line(bin_src, q.min_y_pt, q.min_x_pt, color, 1, 8);
-  line(bin_src, q.min_y_pt, q.max_x_pt, color, 1, 8);
-  imshow("Rects", bin_src);
+  //Draw the page mask
+  imshow("Page mask", getPageMask(closed_src));
 
   waitKey(0);
 
