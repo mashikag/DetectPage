@@ -36,7 +36,6 @@ quadrangle getQuadrangle(Mat src){
         q.max_y_pt = it.pos();
         continue;
       }
-      
 
       int x = it.pos().x;
       int y = it.pos().y;
@@ -58,10 +57,9 @@ quadrangle getQuadrangle(Mat src){
 }
 
 //Takes in a binary image with the backprojected blue
-Mat getPageMask(Mat in) {
+Mat getPageMask(Mat in, quadrangle q) {
   Mat out = Mat::zeros(in.rows, in.cols, CV_8UC1);
   Scalar color = Scalar( 255, 255, 255);
-  quadrangle q = getQuadrangle(in);
   Point pts [1][4];
   pts[0][0] = q.min_y_pt;
   pts[0][1] = q.min_x_pt;
@@ -99,11 +97,31 @@ Mat performPerspectiveGeometricTransform(Mat in, quadrangle q){
   return out;
 }
 
+Mat* scaleTemplates(Mat* templates, Mat* scaledTemplates, int nTemplates, Size dstSize){
+  for (int i = 0; i < nTemplates; i++) {
+    resize(templates[i], scaledTemplates[i], dstSize);
+  }
+  return scaledTemplates;  
+}
+
 int main(int argc, char** argv )
 {
   string imgsDir = "Books/";
   string imgFile = "BookView09.JPG"; 
 
+  //Load template images  
+  int nTemplates =13;
+  string templateFiles[nTemplates];
+  for (int i = 0; i < nTemplates; i++) {
+    templateFiles[i] = "Page" + (i<9? ('0'+i):i) ;
+    templateFiles[i] += ".jpg";
+  }
+  Mat templateImages[13];
+  for (int i = 0; i < nTemplates; i++) {
+    templateImages[i] = imread(imgsDir + templateFiles[i]);
+  }
+
+  
 
   Mat sample, dst;
   sample = imread("bluesample.png");  
@@ -149,17 +167,22 @@ int main(int argc, char** argv )
   imshow("after closing", closed_src);  
   
   //Draw the page mask
-  Mat page_mask = getPageMask(closed_src);
+  quadrangle q = getQuadrangle(bin_src);
+  Mat page_mask = getPageMask(closed_src, q);
   imshow("Page mask", page_mask);
   
   Mat extracted_page;
   bitwise_and(src, src, extracted_page, page_mask);
   imshow("extracted", extracted_page);
 
-  quadrangle q = getQuadrangle(bin_src);
+  //perfrom perspective transformation to the extracted page
   Mat transformed_page;
   transformed_page = performPerspectiveGeometricTransform(extracted_page, q);
   imshow("trans", transformed_page);
+
+  //scale all templates and blur both the templates as well as the transformed page and check against templates
+  
+
 
   waitKey(0);
 
