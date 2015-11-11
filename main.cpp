@@ -10,6 +10,51 @@ using namespace std;
 const float mChannelRange[2] = {0.0, 255.0};
 RNG rng(12345);
 
+struct quadrangle{
+  Point min_y_pt;
+  Point max_y_pt;
+  Point min_x_pt;
+  Point max_x_pt;
+};
+
+quadrangle getQuadrangle(Mat src){
+  quadrangle q;
+  vector<Point> points;
+  Mat_<uchar>::iterator it = src.begin<uchar>();
+  Mat_<uchar>::iterator end = src.end<uchar>();
+  
+
+  for(; it != end; ++it){
+    if(*it){
+      //assign initial value to all
+      if (q.min_y_pt.x == 0 && q.min_y_pt.y == 0) {
+        q.min_x_pt = it.pos();
+        q.max_x_pt = it.pos();
+        q.min_y_pt = it.pos();
+        q.max_y_pt = it.pos();
+        continue;
+      }
+      
+
+      int x = it.pos().x;
+      int y = it.pos().y;
+      
+      if (y < q.min_y_pt.y) {
+        q.min_y_pt = it.pos();
+      } else if (y > q.max_y_pt.y) {
+        q.max_y_pt = it.pos();
+      }
+
+      if (x < q.min_x_pt.x) {
+        q.min_x_pt = it.pos();
+      } else if (x > q.max_x_pt.x) {
+        q.max_x_pt = it.pos();
+      }
+    }
+  }
+  return q;
+}
+
 Mat BackProject(Mat image, MatND hist) {
   Mat result = image.clone();
   const float* channel_ranges[] = {mChannelRange, mChannelRange, mChannelRange};
@@ -26,15 +71,6 @@ Mat BackProject(Mat image, MatND hist) {
 int main(int argc, char** argv )
 {
   string imgsDir = "Books/";
-  string imgsFiles[] = {
-    "BookView.jpg",
-    "Glue2.jpg",
-    "Glue3.jpg",
-    "Glue4.jpg",
-    "Glue5.jpg",
-    "Glue6.jpg"
-  };
-
   string imgFile = "BookView09.JPG"; 
 
 
@@ -73,7 +109,7 @@ int main(int argc, char** argv )
   imshow("after backprojection", backprojected_src);
 
   Mat bin_src;
-  threshold( backprojected_src, bin_src, 30, 255, THRESH_BINARY);  
+  threshold( backprojected_src, bin_src, 25, 255, THRESH_BINARY);  
   
   //Closing (dilation -> erosion) in order to get rid of small objects that may still remain in the background
   Mat closed_src;
@@ -81,35 +117,14 @@ int main(int argc, char** argv )
   morphologyEx(bin_src, closed_src, MORPH_CLOSE, element, Point(-1,-1), 1);
   imshow("after closing", closed_src);  
   
-  //find contours
-  /*vector<vector<Point> > contours;
-  vector<Vec4i> hierarchy;
-  findContours(closed_src, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
-  */
-  vector<Point> points;
-  Mat_<uchar>::iterator it = closed_src.begin<uchar>();
-  Mat_<uchar>::iterator end = closed_src.end<uchar>();
-  for(; it != end; ++it){
-    if(*it)
-      points.push_back(it.pos());
-  }
-
-  //find rotated rectangles
-  /*vector<RotatedRect> minRect(contours.size());
-  for(int i = 0; i < contours.size(); i++) {
-    minRect[i] = minAreaRect(Mat(contours[i]));
-  }*/
-  RotatedRect box = minAreaRect(Mat(points));
-
-  //Draw rotated rects
-  Mat drawing = Mat::zeros( closed_src.size(), CV_8UC3);
+  //Draw the quadrangle
   Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
-  Point2f rect_points[4];
-  box.points(rect_points);
-  for (int j = 0; j < 4; j++)
-    line(drawing, rect_points[j], rect_points[(j+1)%4], color, 1, 8);
-
-  imshow("Rects", drawing);
+  quadrangle q = getQuadrangle(bin_src);
+  line(bin_src, q.max_y_pt, q.min_x_pt, color, 1, 8);
+  line(bin_src, q.max_y_pt, q.max_x_pt, color, 1, 8);
+  line(bin_src, q.min_y_pt, q.min_x_pt, color, 1, 8);
+  line(bin_src, q.min_y_pt, q.max_x_pt, color, 1, 8);
+  imshow("Rects", bin_src);
 
   waitKey(0);
 
