@@ -116,25 +116,19 @@ int main(int argc, char** argv )
   for (int i = 1; i <= nTemplates; i++) {
     ostringstream convert_i;
     convert_i << i;
-    if (i < 10) {
-      templateFiles[i-1] = "Page0" + convert_i.str();
-    }
-    else {
-      templateFiles[i-1] = "Page" + convert_i.str();
-    }
-    templateFiles[i-1] += ".jpg";
+    templateFiles[i-1] = "Page" + ((i<10) ? ('0'+convert_i.str()) : convert_i.str()) + ".jpg";
   }
+
   Mat templateImages[13];
   for (int i = 0; i < nTemplates; i++) {
     cout << templateFiles[i]<<'\n';
     templateImages[i] = imread(imgsDir + templateFiles[i]);
-    if (!templateImages[i].data){
+    if (!templateImages[i].data) {
       cout << "The file " << imgsDir + templateFiles[i] << " does not exist.\n";
       return -1;
     }
   }
-
-  
+  //End Load template images
 
   Mat sample, dst;
   sample = imread("bluesample.png");  
