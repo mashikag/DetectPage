@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string>
+#include <math.h>
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -73,6 +74,31 @@ Mat getPageMask(Mat in) {
   return out;
 }
 
+Mat performPerspectiveGeometricTransform(Mat in, quadrangle q){
+  int outWidth = (int)sqrt(pow((double)(q.min_x_pt.x - q.max_y_pt.x), 2) + pow((double)(q.min_x_pt.y - q.max_y_pt.y), 2));
+  int outHeight = (int)sqrt(pow((double)(q.max_y_pt.x - q.max_x_pt.x), 2) + pow((double)(q.max_y_pt.y - q.max_x_pt.y), 2));
+
+  Mat lambda(2, 4, CV_32FC1);
+  Mat out;
+
+  Point2f inQuad[4];
+  inQuad[0] = q.min_y_pt;
+  inQuad[1] = q.max_x_pt;
+  inQuad[2] = q.max_y_pt;
+  inQuad[3] = q.min_x_pt;  
+
+  Point2f outQuad[4];
+  outQuad[0] = Point(0,0);
+  outQuad[1] = Point(outWidth-1,0);
+  outQuad[2] = Point(outWidth-1, outHeight-1);
+  outQuad[3] = Point(0, outHeight-1);
+
+  lambda = getPerspectiveTransform( inQuad, outQuad);
+  // Apply the Perspective Transform just found to the src image
+  warpPerspective(in,out,lambda,outWidth*outHeight );
+  return out;
+}
+
 int main(int argc, char** argv )
 {
   string imgsDir = "Books/";
@@ -127,8 +153,13 @@ int main(int argc, char** argv )
   imshow("Page mask", page_mask);
   
   Mat extracted_page;
-  bitwise_and(src, page_mask, extracted_page);
+  bitwise_and(src, src, extracted_page, page_mask);
   imshow("extracted", extracted_page);
+
+  quadrangle q = getQuadrangle(bin_src);
+  Mat transformed_page;
+  transformed_page = performPerspectiveGeometricTransform(extracted_page, q);
+  imshow("trans", transformed_page);
 
   waitKey(0);
 
